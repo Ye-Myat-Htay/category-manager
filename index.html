@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Category Client Manager</title>
+    <link rel="stylesheet" href="js/bootstrap.bundle.min.js">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-4" style="max-width: 600px">
+        <h1 class="h4 mb-4">Category Manager</h1>
+        <ul class="list-group" id="list"></ul>
+
+        <script>
+            const api = "http://localhost:8000/api";
+
+            fetch(`${api}/categories`)
+                .then(res => res.json())
+                .then(json => {
+                    json.map(category => {
+                        createItem(category);
+                    })
+                });
+
+            function createItem(category) {
+                let li = document.createElement("li");
+                li.classList.add("list-group-item");
+                li.textContent = category.name;
+                document.querySelector("#list").appendChild(li);
+            }
+        </script>
+    </div>
+</body>
+</html>
