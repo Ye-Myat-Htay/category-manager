@@ -5,29 +5,142 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Category Client Manager</title>
-    <link rel="stylesheet" href="js/bootstrap.bundle.min.js">
+    <link rel="stylesheet" href="css/all.min.js">
+    <link rel="stylesheet" href="js/all.min.js">
     <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="node_modules/bootstrap-icons/font/bootstrap-icons.css">
 </head>
 <body>
     <div class="container mt-4" style="max-width: 600px">
         <h1 class="h4 mb-4">Category Manager</h1>
-        <ul class="list-group" id="list"></ul>
+
+        <div id="login">
+            <div class="mb-2">
+                <input type="text" id="email" class="form-control" placeholder="Enter Email">
+            </div>
+            <div class="mb-2">
+                <input type="password" id="password" class="form-control" placeholder="Enter Password">
+            </div>
+            <button class="btn btn-primary mb-2">Login</button>
+        </div>
+
+        <div id="main" class="d-none">
+            <div class="input-group mb-4">
+                <input type="text" id="new" class="form-control">
+                <button class="btn btn-success" id="add">Add</button>
+            </div>
+            <ul class="list-group" id="list"></ul>
+        </div>
 
         <script>
             const api = "http://localhost:8000/api";
+            let token = "null";
 
-            fetch(`${api}/categories`)
-                .then(res => res.json())
+            function init() {
+                token = localStorage.getItem("token");
+
+                fetch(`${api}/categories`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+
+                .then(res => {
+                    if(res.ok) {
+                        document.querySelector("#login").classList.add("d-none");
+                        document.querySelector("#main").classList.remove("d-none");
+                        return res.json();
+                    }
+                })
                 .then(json => {
                     json.map(category => {
                         createItem(category);
                     })
                 });
+            }
+            
+            // init();
+            document.querySelector("#login button").onclick = () => {
+                let email = document.querySelector("#email").value;
+                let password = document.querySelector("#password").value;
+
+                if(!email || !password) return false;
+
+                fetch(`${api}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                })
+                .then(res => {
+                    if(res.ok) return res.text();
+                    else alert("Incorrect Login");
+                })
+                .then(token => {
+                    localStorage.setItem('token', token);
+                    init();
+                });
+            }
+
+            document.querySelector("#add").onclick = () => {
+                let name = document.querySelector("#new").value;
+                if(!name) return false;
+                
+                fetch(`${api}/categories`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ name }),
+                })
+                .then(res => res.json())
+                .then(json => createItem(json));
+
+                document.querySelector("#new").value = "";
+                document.querySelector("#new").focus();
+            }
 
             function createItem(category) {
                 let li = document.createElement("li");
                 li.classList.add("list-group-item");
-                li.textContent = category.name;
+                
+                let name = document.createElement("span");
+                name.textContent = category.name;
+                li.appendChild(name);
+
+                let edit = document.createElement("a");
+                edit.setAttribute("href", "#");
+                edit.classList.add("bi","bi-pencil", "float-start", "me-3");
+                edit.onclick = () => {
+                    let update = prompt("Enter name", name.textContent);
+                    if(update) name.textContent = update;
+                    fetch(`${api}/categories/${category.id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ name: update }),
+                    });
+                }
+                li.appendChild(edit);
+
+                let del = document.createElement("a");
+                del.setAttribute("href", "#");
+                del.classList.add("bi", "bi-trash", "float-end", 'text-danger');
+                del.onclick = () => {
+                    fetch(`${api}/categories/${category.id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    li.remove();
+                }
+                li.appendChild(del);
+
                 document.querySelector("#list").appendChild(li);
             }
         </script>
